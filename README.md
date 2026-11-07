@@ -43,6 +43,13 @@ npm install && npm test && npm run selftest && npm run build
 - `npm run selftest`：快照+provider+方法论目录+面板 API，零网络
 - `npm run build`：打包 dist/client.js 并做产物三自检
 
+
+## 安装
+
+```bash
+dsh plugin --profile web add dsh-seedance-prompt
+```
+
 ## 许可
 
 MIT。方法论文档来自社区作者（藏师傅、袋鼠帝、小禾、奋力等），详见上游仓库 [make-prompt-seedance2](https://github.com/liangdabiao/make-prompt-seedance2) 的 docs/ 目录。
