@@ -1,0 +1,5 @@
+# Seedance 2.0 分镜提示词专家：技能快照（SKILL.md + 6 篇方法论 references + ads-prompt 模板）。
+# 浏览器半边由 dsh.client 声明加载。
+- insert:
+    - id: seedance-prompt
+      name: 'dsh-seedance-prompt'
