@@ -55,16 +55,59 @@ function MethodsTab() {
       h('div', { style: styles.muted }, m.file))))
 }
 
+
+// ---------- 提示词包历史 ----------
+function fmtTime(iso) {
+  try {
+    const d = new Date(iso)
+    return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')
+  } catch { return iso || '' }
+}
+
+function PacksTab() {
+  const [packs, setPacks] = useState(null)
+  const [error, setError] = useState('')
+  const [open, setOpen] = useState(null)
+  useEffect(() => {
+    fetchJson('/api/packs').then((d) => setPacks(d.packs)).catch((e) => setError(e.message))
+  }, [])
+  if (error) return h('div', { style: styles.error }, error)
+  if (packs === null) return h('div', { style: styles.muted }, '加载中…')
+  if (!packs.length) {
+    return h('div', { style: styles.muted },
+      '还没有提示词包。在对话里说「给保温杯写一条 5 镜头的 Seedance 提示词包」，模型会 build 并保存到这里。')
+  }
+  const pack = open ? packs.find((p) => p.id === open) : null
+  if (pack) {
+    return h('div', null,
+      h('div', { style: styles.row },
+        h('button', { style: styles.chip, onClick: () => setOpen(null) }, '← 返回列表'),
+        h('span', { style: styles.packTitle }, pack.product || pack.id),
+        h('span', { style: styles.mutedSmall }, (pack.stats?.shots ?? '?') + ' 镜 · ' + fmtTime(pack.ts))),
+      h('pre', { style: styles.body }, pack.text))
+  }
+  return h('div', null, packs.map((p) => h('div', {
+    key: p.id, style: styles.card, onClick: () => setOpen(p.id), title: '点击展开提示词包',
+  },
+    h('div', { style: styles.packTitle }, p.product || p.id),
+    h('div', { style: styles.mutedSmall }, (p.stats?.shots ?? '?') + ' 镜' + (p.style ? ' · ' + p.style : '') + ' · ' + fmtTime(p.ts)))))
+}
+
 function Panel() {
   const [tab, setTab] = useState('guide')
   return h('div', { style: styles.wrap },
     h('div', { style: styles.row },
+      h('button', { style: tab === 'packs' ? styles.tabActive : styles.tab, onClick: () => setTab('packs') }, '📦 提示词包'),
       h('button', { style: tab === 'guide' ? styles.tabActive : styles.tab, onClick: () => setTab('guide') }, '📖 使用指南'),
       h('button', { style: tab === 'methods' ? styles.tabActive : styles.tab, onClick: () => setTab('methods') }, '📋 方法论目录')),
-    tab === 'guide' ? h(GuideTab) : h(MethodsTab))
+    tab === 'packs' ? h(PacksTab) : tab === 'guide' ? h(GuideTab) : h(MethodsTab))
 }
 
 const styles = {
+  chip: { padding: '4px 12px', border: '1px solid #d9d9de', borderRadius: 999, background: '#fff', cursor: 'pointer', fontSize: 12 },
+  packTitle: { fontWeight: 700, color: '#e8734a' },
+  mutedSmall: { color: '#a0a0a8', fontSize: 12, lineHeight: 1.7 },
+  body: { background: '#f7f7f8', borderRadius: 8, padding: 12, fontSize: 12, overflow: 'auto', maxHeight: '65vh', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.7 },
   wrap: { padding: 16, overflow: 'auto', height: '100%', boxSizing: 'border-box', fontFamily: '-apple-system, "Segoe UI", "Microsoft YaHei", sans-serif', fontSize: 13, color: '#1a1a1a' },
   row: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 },
   button: { padding: '6px 14px', border: 'none', borderRadius: 8, background: '#e8734a', color: '#fff', cursor: 'pointer', fontSize: 13 },

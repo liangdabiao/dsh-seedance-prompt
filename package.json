@@ -1,7 +1,7 @@
 {
   "name": "dsh-seedance-prompt",
-  "version": "0.1.0",
-  "description": "Seedance 2.0 分镜提示词生成专家：5 套互斥方法论（带货/TVC/通用分镜/真人感/剧情），6 篇参考文档 + 7 篇广告提示词模板 + 完整结构化指南。纯技能零 API key。",
+  "version": "0.2.0",
+  "description": "Seedance 分镜提示词工作台：硬约束校验（@引用上限/编号/单动作告警）+ 提示词包拼装入历史。3 个原生工具 + 侧栏提示词包面板。",
   "license": "MIT",
   "type": "module",
   "main": "src/host.js",

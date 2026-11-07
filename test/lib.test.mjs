@@ -53,3 +53,58 @@ test('面板 API：鉴权 fail closed', () => {
   const noService = { get: () => undefined }
   assert.equal(requestRejection(noService, { headers: {} }), false) // 宿主 token 鉴权是边界，服务缺席放行
 })
+
+// ── 升级新增：校验/拼装/历史 ────────────────────────────────
+process.env.DSH_HOME = new URL('../.tmp/test-home/', import.meta.url).pathname.replace(/^\/([A-Za-z]):/, '$1:')
+
+const { validatePromptPack, buildPromptPack } = await import('../lib/validate.js')
+const data = await import('../lib/data.js')
+const host = await import('../src/host.js')
+
+test('validate: 引用上限/编号/复合动作告警', () => {
+  // 正常包
+  const good = validatePromptPack([{ shot: '开场', prompt: '@图片1 作为首帧，产品从阴影亮起', duration: 3 }])
+  assert.equal(good.ok, true)
+  assert.equal(good.stats.图片, 1)
+  // 超上限
+  const over = validatePromptPack([{ prompt: Array.from({ length: 10 }, (_, i) => `@图片${i + 1}`).join(' ') }])
+  assert.equal(over.ok, false)
+  assert.ok(over.errors.some((e) => e.includes('上限 9')))
+  // 编号缺失
+  const noNum = validatePromptPack([{ prompt: '@图片 作为首帧' }])
+  assert.equal(noNum.ok, false)
+  // 复合动作告警（>500 字）
+  const long = validatePromptPack([{ prompt: 'x'.repeat(600) }])
+  assert.ok(long.warnings.some((w) => w.includes('复合动作')))
+  // 参考时长超限
+  const overDur = validatePromptPack([{ prompt: 'a', referenceDuration: 10 }, { prompt: 'b', referenceDuration: 8 }])
+  assert.ok(overDur.errors.some((e) => e.includes('15s')))
+  // 空包
+  assert.equal(validatePromptPack([]).ok, false)
+  // 拼装
+  const text = buildPromptPack({ product: '保温杯', style: '暖调', shots: [{ shot: '开场', prompt: '@图片1 首帧', duration: 3 }] })
+  assert.ok(text.includes('# Seedance 分镜提示词包 · 保温杯'))
+  assert.ok(text.includes('## 镜头 1（3s）'))
+})
+
+test('host: 3 个工具 check/build/history 全链路', async () => {
+  for (const tool of [host.seedancePromptCheckTool, host.seedancePromptBuildTool, host.seedancePromptHistoryTool]) {
+    assert.equal(tool.parameters.additionalProperties, false)
+    assert.ok(tool.description.length > 30)
+  }
+  await assert.rejects(() => host.seedancePromptCheckTool.execute({ shots: '不是json' }), /不是合法 JSON/)
+  const checkBad = await host.seedancePromptCheckTool.execute({ shots: JSON.stringify([{ prompt: '@图片1' }, { prompt: '@图片2' }, { prompt: '@图片3' }, { prompt: '@图片4' }, { prompt: '@图片5' }, { prompt: '@图片6' }, { prompt: '@图片7' }, { prompt: '@图片8' }, { prompt: '@图片9' }, { prompt: '@图片10' }]) })
+  assert.equal(checkBad.ok, false)
+  const built = await host.seedancePromptBuildTool.execute({
+    product: '测试品', style: '暖调',
+    shots: JSON.stringify([{ shot: '开场', prompt: '@图片1 作为首帧，产品亮起', duration: 3 }]),
+  })
+  assert.equal(built.ok, true)
+  const list = await host.seedancePromptHistoryTool.execute({ action: 'list' })
+  assert.ok(list.data.includes('测试品'))
+  const id = /id=(pack-\d+)/.exec(list.data)?.[1]
+  const got = await host.seedancePromptHistoryTool.execute({ action: 'get', id })
+  assert.ok(got.data.includes('## 镜头 1'))
+  const noConfirm = await host.seedancePromptHistoryTool.execute({ action: 'delete', id })
+  assert.equal(noConfirm.ok, false)
+})
