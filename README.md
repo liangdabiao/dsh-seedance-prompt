@@ -47,7 +47,7 @@ npm install && npm test && npm run selftest && npm run build
 ## 安装
 
 ```bash
-dsh plugin --profile web add dsh-seedance-prompt
+dsh plugin --profile web add https://github.com/liangdabiao/dsh-seedance-prompt
 ```
 
 ## 许可
